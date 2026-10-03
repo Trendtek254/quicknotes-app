@@ -1,4 +1,5 @@
-// Select required DOM elements using querySelector
+
+    // Select DOM elements
 const noteForm = document.querySelector("#note-form");
 const noteInput = document.querySelector("#note-input");
 const noteCategory = document.querySelector("#note-category");
@@ -6,10 +7,10 @@ const notesList = document.querySelector("#notes-list");
 const noteCount = document.querySelector("#note-count");
 const errorMessage = document.querySelector("#error-message");
 
-// Array to store note objects in memory
+// State: Array to hold note objects
 let notes = [];
 
-// Helper function to update the note count display
+// Helper to update the note count display
 function updateCount() {
   const count = notes.length;
   if (count === 0) {
@@ -21,17 +22,23 @@ function updateCount() {
   }
 }
 
+// Function to delete a note by ID
+function deleteNote(id) {
+  notes = notes.filter((note) => note.id !== id);
+  render();
+}
+
 // Function to rebuild and render the notes list from the array
 function render() {
-  // Clear the existing list contents
+  // Clear the current list content
   notesList.textContent = "";
 
   notes.forEach((note) => {
-    // Create note card container
+    // Note card item
     const li = document.createElement("li");
     li.className = `note-card category-${note.category.toLowerCase()}`;
 
-    // Category badge
+    // Header metadata: Category badge
     const headerDiv = document.createElement("div");
     headerDiv.className = "note-header-meta";
 
@@ -40,12 +47,12 @@ function render() {
     categoryBadge.textContent = note.category;
     headerDiv.appendChild(categoryBadge);
 
-    // Note text
+    // Body text
     const textP = document.createElement("p");
     textP.className = "note-text";
-    textP.textContent = note.text; // Pure textContent prevents XSS
+    textP.textContent = note.text; // Text content safely escapes user input
 
-    // Footer containing date and Delete button
+    // Footer metadata: Timestamp and working Delete button
     const footerDiv = document.createElement("div");
     footerDiv.className = "note-footer-meta";
 
@@ -56,11 +63,14 @@ function render() {
     const deleteBtn = document.createElement("button");
     deleteBtn.className = "delete-btn";
     deleteBtn.textContent = "Delete";
+    
+    // Attach click handler to remove this specific note
+    deleteBtn.addEventListener("click", () => deleteNote(note.id));
 
     footerDiv.appendChild(dateSpan);
     footerDiv.appendChild(deleteBtn);
 
-    // Assemble the complete note card
+    // Assemble card
     li.appendChild(headerDiv);
     li.appendChild(textP);
     li.appendChild(footerDiv);
@@ -68,36 +78,48 @@ function render() {
     notesList.appendChild(li);
   });
 
+  // Always update the counter after rendering
   updateCount();
 }
 
-// Handle form submission to add a new note
+// Form submission handler with input validation
 noteForm.addEventListener("submit", (e) => {
   e.preventDefault();
 
-  const textValue = noteInput.value.trim();
+  const rawText = noteInput.value;
+  const trimmedText = rawText.trim();
 
-  // Basic check to ensure input is not empty
-  if (!textValue) return;
+  // 1. Validation Check: Empty or only whitespace
+  if (trimmedText === "") {
+    errorMessage.textContent = "Please type a note first.";
+    return;
+  }
 
-  // Create the note object with all required properties
+  // 2. Validation Check: Over 200 characters
+  if (trimmedText.length > 200) {
+    errorMessage.textContent = "Notes must be 200 characters or fewer.";
+    return;
+  }
+
+  // Clear validation error when a valid note is added
+  errorMessage.textContent = "";
+
+  // Create new note object
   const newNote = {
     id: Date.now(),
-    text: textValue,
+    text: trimmedText,
     category: noteCategory.value,
     createdAt: new Date().toLocaleString()
   };
 
-  // Add the note object to the array (newest first)
+  // Add to array and re-render
   notes.unshift(newNote);
-
-  // Re-render the UI
   render();
 
-  // Clear the input field and reset focus
+  // Reset form input
   noteInput.value = "";
   noteInput.focus();
 });
 
-// Initial render on page load
+// Initial render call
 render();
