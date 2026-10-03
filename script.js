@@ -1,18 +1,22 @@
 
-    // Select DOM elements
 const noteForm = document.querySelector("#note-form");
 const noteInput = document.querySelector("#note-input");
 const noteCategory = document.querySelector("#note-category");
+const searchInput = document.querySelector("#search-input");
 const notesList = document.querySelector("#notes-list");
 const noteCount = document.querySelector("#note-count");
 const errorMessage = document.querySelector("#error-message");
 
-// State: Array to hold note objects
-let notes = [];
 
-// Helper to update the note count display
-function updateCount() {
-  const count = notes.length;
+let notes = JSON.parse(localStorage.getItem("quicknotes_data")) || [];
+
+
+function saveNotes() {
+  localStorage.setItem("quicknotes_data", JSON.stringify(notes));
+}
+
+
+function updateCount(count = notes.length) {
   if (count === 0) {
     noteCount.textContent = "You have no notes yet.";
   } else if (count === 1) {
@@ -22,23 +26,35 @@ function updateCount() {
   }
 }
 
-// Function to delete a note by ID
+
 function deleteNote(id) {
   notes = notes.filter((note) => note.id !== id);
-  render();
+  saveNotes();
+  handleSearch(); // Re-apply current search query filter if active
 }
-
-// Function to rebuild and render the notes list from the array
-function render() {
-  // Clear the current list content
+function render(filteredNotes = notes) {
   notesList.textContent = "";
 
-  notes.forEach((note) => {
-    // Note card item
-    const li = document.createElement("li");
-    li.className = `note-card category-${note.category.toLowerCase()}`;
 
-    // Header metadata: Category badge
+  if (filteredNotes.length === 0) {
+    const emptyLi = document.createElement("li");
+    emptyLi.className = "empty-message";
+
+    if (notes.length === 0) {
+      emptyLi.textContent = "No notes created yet. Add one above!";
+    } else {
+      emptyLi.textContent = "No notes match your search.";
+    }
+
+    notesList.appendChild(emptyLi);
+    updateCount(filteredNotes.length);
+    return;
+  }
+
+  filteredNotes.forEach((note) => {
+    const li = document.createElement("li");
+    li.className = `note-card category-${note.category.toLowerCase()}`
+
     const headerDiv = document.createElement("div");
     headerDiv.className = "note-header-meta";
 
@@ -47,12 +63,12 @@ function render() {
     categoryBadge.textContent = note.category;
     headerDiv.appendChild(categoryBadge);
 
-    // Body text
+    
     const textP = document.createElement("p");
     textP.className = "note-text";
-    textP.textContent = note.text; // Text content safely escapes user input
+    textP.textContent = note.text;
 
-    // Footer metadata: Timestamp and working Delete button
+    
     const footerDiv = document.createElement("div");
     footerDiv.className = "note-footer-meta";
 
@@ -63,14 +79,12 @@ function render() {
     const deleteBtn = document.createElement("button");
     deleteBtn.className = "delete-btn";
     deleteBtn.textContent = "Delete";
-    
-    // Attach click handler to remove this specific note
     deleteBtn.addEventListener("click", () => deleteNote(note.id));
 
     footerDiv.appendChild(dateSpan);
     footerDiv.appendChild(deleteBtn);
 
-    // Assemble card
+    
     li.appendChild(headerDiv);
     li.appendChild(textP);
     li.appendChild(footerDiv);
@@ -78,33 +92,28 @@ function render() {
     notesList.appendChild(li);
   });
 
-  // Always update the counter after rendering
-  updateCount();
+  updateCount(filteredNotes.length);
 }
 
-// Form submission handler with input validation
+
 noteForm.addEventListener("submit", (e) => {
   e.preventDefault();
 
   const rawText = noteInput.value;
   const trimmedText = rawText.trim();
 
-  // 1. Validation Check: Empty or only whitespace
   if (trimmedText === "") {
     errorMessage.textContent = "Please type a note first.";
     return;
   }
 
-  // 2. Validation Check: Over 200 characters
   if (trimmedText.length > 200) {
     errorMessage.textContent = "Notes must be 200 characters or fewer.";
     return;
   }
 
-  // Clear validation error when a valid note is added
   errorMessage.textContent = "";
 
-  // Create new note object
   const newNote = {
     id: Date.now(),
     text: trimmedText,
@@ -112,14 +121,28 @@ noteForm.addEventListener("submit", (e) => {
     createdAt: new Date().toLocaleString()
   };
 
-  // Add to array and re-render
   notes.unshift(newNote);
+  saveNotes();
+  
+  
+  searchInput.value = "";
   render();
 
-  // Reset form input
   noteInput.value = "";
   noteInput.focus();
 });
 
-// Initial render call
+
+function handleSearch() {
+  const query = searchInput.value.toLowerCase().trim();
+  const matchedNotes = notes.filter((note) =>
+    note.text.toLowerCase().includes(query)
+  );
+  render(matchedNotes);
+}
+
+
+searchInput.addEventListener("input", handleSearch);
+
+
 render();
