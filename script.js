@@ -1,4 +1,5 @@
 
+
 const noteForm = document.querySelector("#note-form");
 const noteInput = document.querySelector("#note-input");
 const noteCategory = document.querySelector("#note-category");
@@ -6,6 +7,7 @@ const searchInput = document.querySelector("#search-input");
 const notesList = document.querySelector("#notes-list");
 const noteCount = document.querySelector("#note-count");
 const errorMessage = document.querySelector("#error-message");
+const clearAllBtn = document.querySelector("#clear-all-btn");
 
 
 let notes = JSON.parse(localStorage.getItem("quicknotes_data")) || [];
@@ -30,11 +32,10 @@ function updateCount(count = notes.length) {
 function deleteNote(id) {
   notes = notes.filter((note) => note.id !== id);
   saveNotes();
-  handleSearch(); // Re-apply current search query filter if active
+  handleSearch();
 }
 function render(filteredNotes = notes) {
-  notesList.textContent = "";
-
+     notesList.textContent = "";
 
   if (filteredNotes.length === 0) {
     const emptyLi = document.createElement("li");
@@ -53,8 +54,9 @@ function render(filteredNotes = notes) {
 
   filteredNotes.forEach((note) => {
     const li = document.createElement("li");
-    li.className = `note-card category-${note.category.toLowerCase()}`
+    li.className = `note-card category-${note.category.toLowerCase()}`;
 
+    
     const headerDiv = document.createElement("div");
     headerDiv.className = "note-header-meta";
 
@@ -124,7 +126,6 @@ noteForm.addEventListener("submit", (e) => {
   notes.unshift(newNote);
   saveNotes();
   
-  
   searchInput.value = "";
   render();
 
@@ -141,8 +142,22 @@ function handleSearch() {
   render(matchedNotes);
 }
 
-
 searchInput.addEventListener("input", handleSearch);
+
+
+if (clearAllBtn) {
+  clearAllBtn.addEventListener("click", () => {
+    if (notes.length === 0) return;
+
+    const confirmDelete = confirm("Delete all notes?");
+    if (confirmDelete) {
+      notes = [];
+      saveNotes();
+      render();
+      errorMessage.textContent = "";
+    }
+  });
+}
 
 
 render();
